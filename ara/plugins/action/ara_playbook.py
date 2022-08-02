@@ -75,7 +75,7 @@ class ActionModule(ActionBase):
 
     def run(self, tmp=None, task_vars=None):
         if task_vars is None:
-            task_vars = dict()
+            task_vars = {}
 
         for arg in self._task.args:
             if arg not in self.VALID_ARGS:
@@ -92,11 +92,11 @@ class ActionModule(ActionBase):
             while not isinstance(parent._parent._play, Play):
                 parent = parent._parent
 
-            play = self.client.get("/api/v1/plays?uuid=%s" % parent._parent._play._uuid)
+            play = self.client.get(f"/api/v1/plays?uuid={parent._parent._play._uuid}")
             playbook_id = play["results"][0]["playbook"]
 
-        result["playbook"] = self.client.get("/api/v1/playbooks/%s" % playbook_id)
+        result["playbook"] = self.client.get(f"/api/v1/playbooks/{playbook_id}")
         result["changed"] = False
-        result["msg"] = "Queried playbook %s from ARA" % playbook_id
+        result["msg"] = f"Queried playbook {playbook_id} from ARA"
 
         return result

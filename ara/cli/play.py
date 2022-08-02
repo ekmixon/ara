@@ -86,9 +86,10 @@ class PlayList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.playbook is not None:
             query["playbook"] = args.playbook
@@ -114,10 +115,11 @@ class PlayList(Lister):
             if args.resolve:
                 playbook = cli_utils.get_playbook(client, play["playbook"])
                 # Paths can easily take up too much width real estate
-                if not args.long:
-                    play["playbook"] = "(%s) %s" % (playbook["id"], cli_utils.truncatepath(playbook["path"], 50))
-                else:
-                    play["playbook"] = "(%s) %s" % (playbook["id"], playbook["path"])
+                play["playbook"] = (
+                    f'({playbook["id"]}) {playbook["path"]}'
+                    if args.long
+                    else f'({playbook["id"]}) {cli_utils.truncatepath(playbook["path"], 50)}'
+                )
 
         columns = ("id", "status", "name", "playbook", "tasks", "results", "started", "duration")
         # fmt: off
@@ -154,18 +156,20 @@ class PlayShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        play = client.get("/api/v1/plays/%s" % args.play_id)
+        play = client.get(f"/api/v1/plays/{args.play_id}")
         if "detail" in play and play["detail"] == "Not found.":
-            self.log.error("Play not found: %s" % args.play_id)
+            self.log.error(f"Play not found: {args.play_id}")
             sys.exit(1)
 
-        playbook = "(%s) %s" % (play["playbook"]["id"], play["playbook"]["name"] or play["playbook"]["path"])
-        play["report"] = "%s/playbooks/%s.html" % (args.server, play["playbook"]["id"])
+        playbook = f'({play["playbook"]["id"]}) {play["playbook"]["name"] or play["playbook"]["path"]}'
+
+        play["report"] = f'{args.server}/playbooks/{play["playbook"]["id"]}.html'
         play["playbook"] = playbook
 
         # fmt: off
@@ -208,9 +212,10 @@ class PlayDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/plays/%s" % args.play_id)
+        client.delete(f"/api/v1/plays/{args.play_id}")

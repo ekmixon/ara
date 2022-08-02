@@ -55,7 +55,5 @@ def diff_result(diff):
     # the entire diff.
     lines = []
     for d in diffs:
-        for line in d:
-            lines.append(line)
-
+        lines.extend(iter(d))
     return "\n".join(lines)

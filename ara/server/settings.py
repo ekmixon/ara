@@ -261,7 +261,7 @@ ARA_SETTINGS = os.getenv("ARA_SETTINGS", DEFAULT_SETTINGS)
 
 # Ensure default base configuration/data directory exists
 if not os.path.isdir(BASE_DIR):
-    print("[ara] Creating data & configuration directory: %s" % BASE_DIR)
+    print(f"[ara] Creating data & configuration directory: {BASE_DIR}")
     os.makedirs(BASE_DIR, mode=0o700)
 
 if not os.path.exists(DEFAULT_SETTINGS) and "ARA_SETTINGS" not in os.environ:
@@ -305,6 +305,6 @@ if not os.path.exists(DEFAULT_SETTINGS) and "ARA_SETTINGS" not in os.environ:
                 DEFAULT_SETTINGS
             )
         )
-        print("[ara] Writing default settings to %s" % DEFAULT_SETTINGS)
+        print(f"[ara] Writing default settings to {DEFAULT_SETTINGS}")
         settings_file.write(comment.lstrip())
         yaml.dump({"default": SETTINGS}, settings_file, default_flow_style=False)

@@ -95,7 +95,7 @@ class FileTestCase(APITestCase):
 
     def test_get_file(self):
         file = factories.FileFactory()
-        request = self.client.get("/api/v1/files/%s" % file.id)
+        request = self.client.get(f"/api/v1/files/{file.id}")
         self.assertEqual(file.path, request.data["path"])
         self.assertEqual(file.content.sha1, request.data["sha1"])
 
@@ -105,9 +105,14 @@ class FileTestCase(APITestCase):
         old_sha1 = file.content.sha1
         self.assertNotEqual("/path/new_playbook.yml", file.path)
         request = self.client.put(
-            "/api/v1/files/%s" % file.id,
-            {"path": "/path/new_playbook.yml", "content": "# playbook", "playbook": playbook.id},
+            f"/api/v1/files/{file.id}",
+            {
+                "path": "/path/new_playbook.yml",
+                "content": "# playbook",
+                "playbook": playbook.id,
+            },
         )
+
         self.assertEqual(200, request.status_code)
         file_updated = models.File.objects.get(id=file.id)
         self.assertEqual("/path/new_playbook.yml", file_updated.path)
@@ -116,7 +121,10 @@ class FileTestCase(APITestCase):
     def test_partial_update_file(self):
         file = factories.FileFactory()
         self.assertNotEqual("/path/new_playbook.yml", file.path)
-        request = self.client.patch("/api/v1/files/%s" % file.id, {"path": "/path/new_playbook.yml"})
+        request = self.client.patch(
+            f"/api/v1/files/{file.id}", {"path": "/path/new_playbook.yml"}
+        )
+
         self.assertEqual(200, request.status_code)
         file_updated = models.File.objects.get(id=file.id)
         self.assertEqual("/path/new_playbook.yml", file_updated.path)
@@ -124,7 +132,7 @@ class FileTestCase(APITestCase):
     def test_delete_file(self):
         file = factories.FileFactory()
         self.assertEqual(1, models.File.objects.all().count())
-        request = self.client.delete("/api/v1/files/%s" % file.id)
+        request = self.client.delete(f"/api/v1/files/{file.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.File.objects.all().count())
 
@@ -137,12 +145,12 @@ class FileTestCase(APITestCase):
 
         # Expect no file when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/files?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/files?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a file when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/files?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/files?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], file.id)
 
@@ -157,12 +165,12 @@ class FileTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "path"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/files?order=%s" % field)
+            request = self.client.get(f"/api/v1/files?order={field}")
             self.assertEqual(request.data["results"][0]["id"], first_file.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/files?order=-%s" % field)
+            request = self.client.get(f"/api/v1/files?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], second_file.id)
 
     def test_get_file_by_path(self):
@@ -181,5 +189,5 @@ class FileTestCase(APITestCase):
 
     def test_get_playbook_arguments(self):
         file = factories.FileFactory()
-        request = self.client.get("/api/v1/files/%s" % file.id)
+        request = self.client.get(f"/api/v1/files/{file.id}")
         self.assertIn("inventory", request.data["playbook"]["arguments"])

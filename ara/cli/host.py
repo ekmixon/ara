@@ -117,9 +117,10 @@ class HostList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.name is not None:
             query["name"] = args.name
@@ -149,10 +150,11 @@ class HostList(Lister):
             for host in hosts["results"]:
                 playbook = cli_utils.get_playbook(client, host["playbook"])
                 # Paths can easily take up too much width real estate
-                if not args.long:
-                    host["playbook"] = "(%s) %s" % (playbook["id"], cli_utils.truncatepath(playbook["path"], 50))
-                else:
-                    host["playbook"] = "(%s) %s" % (playbook["id"], playbook["path"])
+                host["playbook"] = (
+                    f'({playbook["id"]}) {playbook["path"]}'
+                    if args.long
+                    else f'({playbook["id"]}) {cli_utils.truncatepath(playbook["path"], 50)}'
+                )
 
         columns = ("id", "name", "playbook", "changed", "failed", "ok", "skipped", "unreachable", "updated")
         # fmt: off
@@ -198,17 +200,18 @@ class HostShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        host = client.get("/api/v1/hosts/%s" % args.host_id)
+        host = client.get(f"/api/v1/hosts/{args.host_id}")
         if "detail" in host and host["detail"] == "Not found.":
-            self.log.error("Host not found: %s" % args.host_id)
+            self.log.error(f"Host not found: {args.host_id}")
             sys.exit(1)
 
-        host["report"] = "%s/playbooks/%s.html" % (args.server, host["playbook"]["id"])
+        host["report"] = f'{args.server}/playbooks/{host["playbook"]["id"]}.html'
         if args.with_facts:
             # fmt: off
             columns = (
@@ -265,12 +268,13 @@ class HostDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/hosts/%s" % args.host_id)
+        client.delete(f"/api/v1/hosts/{args.host_id}")
 
 
 class HostMetrics(Lister):
@@ -365,9 +369,10 @@ class HostMetrics(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.name is not None:
             query["name"] = args.name

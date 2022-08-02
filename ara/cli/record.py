@@ -74,9 +74,10 @@ class RecordList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.playbook is not None:
             query["playbook"] = args.playbook
@@ -92,10 +93,11 @@ class RecordList(Lister):
             for record in records["results"]:
                 playbook = cli_utils.get_playbook(client, record["playbook"])
                 # Paths can easily take up too much width real estate
-                if not args.long:
-                    record["playbook"] = "(%s) %s" % (playbook["id"], cli_utils.truncatepath(playbook["path"], 50))
-                else:
-                    record["playbook"] = "(%s) %s" % (playbook["id"], playbook["path"])
+                record["playbook"] = (
+                    f'({playbook["id"]}) {playbook["path"]}'
+                    if args.long
+                    else f'({playbook["id"]}) {cli_utils.truncatepath(playbook["path"], 50)}'
+                )
 
         columns = ("id", "key", "type", "playbook", "updated")
         # fmt: off
@@ -136,18 +138,20 @@ class RecordShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        record = client.get("/api/v1/records/%s" % args.record_id)
+        record = client.get(f"/api/v1/records/{args.record_id}")
         if "detail" in record and record["detail"] == "Not found.":
-            self.log.error("Record not found: %s" % args.record_id)
+            self.log.error(f"Record not found: {args.record_id}")
             sys.exit(1)
 
-        playbook = "(%s) %s" % (record["playbook"]["id"], record["playbook"]["name"] or record["playbook"]["path"])
-        record["report"] = "%s/playbooks/%s.html" % (args.server, record["playbook"]["id"])
+        playbook = f'({record["playbook"]["id"]}) {record["playbook"]["name"] or record["playbook"]["path"]}'
+
+        record["report"] = f'{args.server}/playbooks/{record["playbook"]["id"]}.html'
         record["playbook"] = playbook
 
         # fmt: off
@@ -188,9 +192,10 @@ class RecordDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/records/%s" % args.record_id)
+        client.delete(f"/api/v1/records/{args.record_id}")

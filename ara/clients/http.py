@@ -39,10 +39,11 @@ class HttpClient(object):
         self.timeout = int(timeout)
         self.verify = verify
         self.headers = {
-            "User-Agent": "ara-http-client_%s" % CLIENT_VERSION,
+            "User-Agent": f"ara-http-client_{CLIENT_VERSION}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+
         self.http = requests.Session()
         self.http.headers.update(self.headers)
         if self.auth is not None:
@@ -87,11 +88,7 @@ class AraHttpClient(object):
 
     def _request(self, method, url, **kwargs):
         func = getattr(self.client, method)
-        if method == "delete":
-            response = func(url)
-        else:
-            response = func(url, **kwargs)
-
+        response = func(url) if method == "delete" else func(url, **kwargs)
         if response.status_code >= 500:
             self.log.error("Failed to {method} on {url}: {content}".format(method=method, url=url, content=kwargs))
 
@@ -100,10 +97,7 @@ class AraHttpClient(object):
         if response.status_code not in [200, 201, 204]:
             self.log.error("Failed to {method} on {url}: {content}".format(method=method, url=url, content=kwargs))
 
-        if response.status_code == 204:
-            return response
-
-        return response.json()
+        return response if response.status_code == 204 else response.json()
 
     def get(self, endpoint, **kwargs):
         return self._request("get", endpoint, params=kwargs)

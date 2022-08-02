@@ -108,9 +108,10 @@ class ResultList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.playbook is not None:
             query["playbook"] = args.playbook
@@ -137,20 +138,21 @@ class ResultList(Lister):
             for result in results["results"]:
                 playbook = cli_utils.get_playbook(client, result["playbook"])
                 # Paths can easily take up too much width real estate
-                if not args.long:
-                    result["playbook"] = "(%s) %s" % (playbook["id"], cli_utils.truncatepath(playbook["path"], 50))
-                else:
-                    result["playbook"] = "(%s) %s" % (playbook["id"], playbook["path"])
+                result["playbook"] = (
+                    f'({playbook["id"]}) {playbook["path"]}'
+                    if args.long
+                    else f'({playbook["id"]}) {cli_utils.truncatepath(playbook["path"], 50)}'
+                )
 
                 task = cli_utils.get_task(client, result["task"])
-                result["task"] = "(%s) %s" % (task["id"], task["name"])
+                result["task"] = f'({task["id"]}) {task["name"]}'
 
                 host = cli_utils.get_host(client, result["host"])
-                result["host"] = "(%s) %s" % (host["id"], host["name"])
+                result["host"] = f'({host["id"]}) {host["name"]}'
 
                 if args.long:
                     play = cli_utils.get_play(client, result["play"])
-                    result["play"] = "(%s) %s" % (play["id"], play["name"])
+                    result["play"] = f'({play["id"]}) {play["name"]}'
 
         # fmt: off
         if args.long:
@@ -219,29 +221,32 @@ class ResultShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        result = client.get("/api/v1/results/%s" % args.result_id)
+        result = client.get(f"/api/v1/results/{args.result_id}")
         if "detail" in result and result["detail"] == "Not found.":
-            self.log.error("Result not found: %s" % args.result_id)
+            self.log.error(f"Result not found: {args.result_id}")
             sys.exit(1)
 
         # Parse data from playbook and format it for display
         result["ansible_version"] = result["playbook"]["ansible_version"]
-        playbook = "(%s) %s" % (result["playbook"]["id"], result["playbook"]["name"] or result["playbook"]["path"])
-        result["report"] = "%s/playbooks/%s.html" % (args.server, result["playbook"]["id"])
+        playbook = f'({result["playbook"]["id"]}) {result["playbook"]["name"] or result["playbook"]["path"]}'
+
+        result["report"] = f'{args.server}/playbooks/{result["playbook"]["id"]}.html'
         result["playbook"] = playbook
 
         # Parse data from play and format it for display
-        play = "(%s) %s" % (result["play"]["id"], result["play"]["name"])
+        play = f'({result["play"]["id"]}) {result["play"]["name"]}'
         result["play"] = play
 
         # Parse data from task and format it for display
-        task = "(%s) %s" % (result["task"]["id"], result["task"]["name"])
-        path = "(%s) %s:%s" % (result["task"]["file"], result["task"]["path"], result["task"]["lineno"])
+        task = f'({result["task"]["id"]}) {result["task"]["name"]}'
+        path = f'({result["task"]["file"]}) {result["task"]["path"]}:{result["task"]["lineno"]}'
+
         result["task"] = task
         result["path"] = path
 
@@ -301,9 +306,10 @@ class ResultDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/results/%s" % args.result_id)
+        client.delete(f"/api/v1/results/{args.result_id}")

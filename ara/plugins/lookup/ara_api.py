@@ -56,8 +56,4 @@ class LookupModule(LookupBase):
         self.client = client_utils.active_client()
 
     def run(self, terms, variables, **kwargs):
-        ret = []
-        for term in terms:
-            ret.append(self.client.get(term))
-
-        return ret
+        return [self.client.get(term) for term in terms]

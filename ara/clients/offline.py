@@ -92,5 +92,5 @@ class ServerThread(threading.Thread):
 
 
 class QuietWSGIRequestHandler(WSGIRequestHandler):
-    def log_message(*args):
+    def log_message(self):
         pass

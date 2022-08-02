@@ -62,10 +62,11 @@ class Command(BaseCommand):
             endpoint=endpoint,
             username=username,
             password=password,
-            verify=False if insecure else True,
+            verify=not insecure,
             timeout=timeout,
             run_sql_migrations=False,
         )
+
 
         if not confirm:
             logger.info("--confirm was not specified, no playbooks will be deleted")
@@ -74,7 +75,10 @@ class Command(BaseCommand):
         # ex: 2019-11-21T00:57:41.702229
         limit_date = (datetime.now() - timedelta(days=days)).isoformat()
 
-        logger.info("Querying %s/api/v1/playbooks/?started_before=%s" % (endpoint, limit_date))
+        logger.info(
+            f"Querying {endpoint}/api/v1/playbooks/?started_before={limit_date}"
+        )
+
         playbooks = api_client.get("/api/v1/playbooks", started_before=limit_date)
 
         # TODO: Improve client validation and exception handling
@@ -84,7 +88,7 @@ class Command(BaseCommand):
             logger.error("Client failed to retrieve results, see logs for ara.clients.offline or ara.clients.http.")
             sys.exit(1)
 
-        logger.info("Found %s playbooks matching query" % playbooks["count"])
+        logger.info(f'Found {playbooks["count"]} playbooks matching query')
 
         for playbook in playbooks["results"]:
             if not confirm:
@@ -93,7 +97,7 @@ class Command(BaseCommand):
             else:
                 msg = "Deleting playbook {id} ({path}), start date: {started}"
                 logger.info(msg.format(id=playbook["id"], path=playbook["path"], started=playbook["started"]))
-                api_client.delete("/api/v1/playbooks/%s" % playbook["id"])
+                api_client.delete(f'/api/v1/playbooks/{playbook["id"]}')
                 self.deleted += 1
 
-        logger.info("%s playbooks deleted" % self.deleted)
+        logger.info(f"{self.deleted} playbooks deleted")

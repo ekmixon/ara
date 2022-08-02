@@ -33,11 +33,11 @@ class Index(generics.ListAPIView):
             max_current = self.paginator.offset + self.paginator.limit
         else:
             max_current = self.paginator.count
-        current_page_results = "%s-%s" % (self.paginator.offset + 1, max_current)
+        current_page_results = f"{self.paginator.offset + 1}-{max_current}"
 
         # We need to expand the search card if there is a search query, not considering pagination args
         search_args = [arg for arg in request.GET.keys() if arg not in ["limit", "offset"]]
-        expand_search = True if search_args else False
+        expand_search = bool(search_args)
 
         search_form = forms.PlaybookSearchForm(request.GET)
 
@@ -75,9 +75,7 @@ class Playbook(generics.RetrieveAPIView):
             models.Record.objects.filter(playbook=playbook.data["id"]).all(), many=True
         )
 
-        order = "-started"
-        if "order" in request.GET:
-            order = request.GET["order"]
+        order = request.GET["order"] if "order" in request.GET else "-started"
         result_queryset = models.Result.objects.filter(playbook=playbook.data["id"]).order_by(order).all()
         result_filter = filters.ResultFilter(request.GET, queryset=result_queryset)
 
@@ -98,11 +96,11 @@ class Playbook(generics.RetrieveAPIView):
             max_current = self.paginator.offset + self.paginator.limit
         else:
             max_current = self.paginator.count
-        current_page_results = "%s-%s" % (self.paginator.offset + 1, max_current)
+        current_page_results = f"{self.paginator.offset + 1}-{max_current}"
 
         # We need to expand the search card if there is a search query, not considering pagination args
         search_args = [arg for arg in request.GET.keys() if arg not in ["limit", "offset"]]
-        expand_search = True if search_args else False
+        expand_search = bool(search_args)
 
         search_form = forms.ResultSearchForm(request.GET)
 
@@ -135,9 +133,7 @@ class Host(generics.RetrieveAPIView):
         host = self.get_object()
         host_serializer = serializers.DetailedHostSerializer(host)
 
-        order = "-started"
-        if "order" in request.GET:
-            order = request.GET["order"]
+        order = request.GET["order"] if "order" in request.GET else "-started"
         result_queryset = models.Result.objects.filter(host=host_serializer.data["id"]).order_by(order).all()
         result_filter = filters.ResultFilter(request.GET, queryset=result_queryset)
 
@@ -156,11 +152,11 @@ class Host(generics.RetrieveAPIView):
             max_current = self.paginator.offset + self.paginator.limit
         else:
             max_current = self.paginator.count
-        current_page_results = "%s-%s" % (self.paginator.offset + 1, max_current)
+        current_page_results = f"{self.paginator.offset + 1}-{max_current}"
 
         # We need to expand the search card if there is a search query, not considering pagination args
         search_args = [arg for arg in request.GET.keys() if arg not in ["limit", "offset"]]
-        expand_search = True if search_args else False
+        expand_search = bool(search_args)
 
         search_form = forms.ResultSearchForm(request.GET)
 

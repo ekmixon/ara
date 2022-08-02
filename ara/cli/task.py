@@ -92,9 +92,10 @@ class TaskList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.playbook is not None:
             query["playbook"] = args.playbook
@@ -121,14 +122,15 @@ class TaskList(Lister):
             if args.resolve:
                 playbook = cli_utils.get_playbook(client, task["playbook"])
                 # Paths can easily take up too much width real estate
-                if not args.long:
-                    task["playbook"] = "(%s) %s" % (playbook["id"], cli_utils.truncatepath(playbook["path"], 50))
-                else:
-                    task["playbook"] = "(%s) %s" % (playbook["id"], playbook["path"])
+                task["playbook"] = (
+                    f'({playbook["id"]}) {playbook["path"]}'
+                    if args.long
+                    else f'({playbook["id"]}) {cli_utils.truncatepath(playbook["path"], 50)}'
+                )
 
                 if args.long:
                     play = cli_utils.get_play(client, task["play"])
-                    task["play"] = "(%s) %s" % (play["id"], play["name"])
+                    task["play"] = f'({play["id"]}) {play["name"]}'
 
         # fmt: off
         if args.long:
@@ -192,17 +194,18 @@ class TaskShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        task = client.get("/api/v1/tasks/%s" % args.task_id)
+        task = client.get(f"/api/v1/tasks/{args.task_id}")
         if "detail" in task and task["detail"] == "Not found.":
-            self.log.error("Task not found: %s" % args.task_id)
+            self.log.error(f"Task not found: {args.task_id}")
             sys.exit(1)
 
-        task["report"] = "%s/playbooks/%s.html" % (args.server, task["playbook"]["id"])
+        task["report"] = f'{args.server}/playbooks/{task["playbook"]["id"]}.html'
         columns = (
             "id",
             "report",
@@ -244,12 +247,13 @@ class TaskDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/tasks/%s" % args.task_id)
+        client.delete(f"/api/v1/tasks/{args.task_id}")
 
 
 class TaskMetrics(Lister):
@@ -331,9 +335,10 @@ class TaskMetrics(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.playbook is not None:
             query["playbook"] = args.playbook
@@ -374,12 +379,11 @@ class TaskMetrics(Lister):
                 "completed": 0,
                 "unknown": 0,
                 "duration_total": "00:00:00.000000",
+                "aggregate": cli_utils.truncatepath(item, 50)
+                if args.aggregate == "path" and not args.long
+                else item,
             }
 
-            if args.aggregate == "path" and not args.long:
-                data[item]["aggregate"] = cli_utils.truncatepath(item, 50)
-            else:
-                data[item]["aggregate"] = item
 
             for task in tasks:
                 for status in ["running", "completed", "expired", "unknown"]:

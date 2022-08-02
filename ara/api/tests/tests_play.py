@@ -59,7 +59,7 @@ class PlayTestCase(APITestCase):
     def test_delete_play(self):
         play = factories.PlayFactory()
         self.assertEqual(1, models.Play.objects.all().count())
-        request = self.client.delete("/api/v1/plays/%s" % play.id)
+        request = self.client.delete(f"/api/v1/plays/{play.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Play.objects.all().count())
 
@@ -81,7 +81,7 @@ class PlayTestCase(APITestCase):
     def test_partial_update_play(self):
         play = factories.PlayFactory()
         self.assertNotEqual("update", play.name)
-        request = self.client.patch("/api/v1/plays/%s" % play.id, {"name": "update"})
+        request = self.client.patch(f"/api/v1/plays/{play.id}", {"name": "update"})
         self.assertEqual(200, request.status_code)
         play_updated = models.Play.objects.get(id=play.id)
         self.assertEqual("update", play_updated.name)
@@ -90,14 +90,14 @@ class PlayTestCase(APITestCase):
         play = factories.PlayFactory(status="running")
         self.assertEqual("running", play.status)
 
-        request = self.client.patch("/api/v1/plays/%s" % play.id, {"status": "expired"})
+        request = self.client.patch(f"/api/v1/plays/{play.id}", {"status": "expired"})
         self.assertEqual(200, request.status_code)
         play_updated = models.Play.objects.get(id=play.id)
         self.assertEqual("expired", play_updated.status)
 
     def test_get_play(self):
         play = factories.PlayFactory()
-        request = self.client.get("/api/v1/plays/%s" % play.id)
+        request = self.client.get(f"/api/v1/plays/{play.id}")
         self.assertEqual(play.name, request.data["name"])
 
     def test_get_play_by_playbook(self):
@@ -114,7 +114,7 @@ class PlayTestCase(APITestCase):
         factories.PlayFactory(name="second_play", playbook=playbook)
 
         # Query for the first play name and expect one result
-        request = self.client.get("/api/v1/plays?name=%s" % play.name)
+        request = self.client.get(f"/api/v1/plays?name={play.name}")
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(play.name, request.data["results"][0]["name"])
 
@@ -129,7 +129,7 @@ class PlayTestCase(APITestCase):
         started = timezone.now()
         ended = started + datetime.timedelta(hours=1)
         play = factories.PlayFactory(started=started, ended=ended)
-        request = self.client.get("/api/v1/plays/%s" % play.id)
+        request = self.client.get(f"/api/v1/plays/{play.id}")
         self.assertEqual(parse_duration(request.data["duration"]), ended - started)
 
     def test_get_play_by_date(self):
@@ -141,12 +141,12 @@ class PlayTestCase(APITestCase):
 
         # Expect no play when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/plays?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/plays?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a play when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/plays?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/plays?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], play.id)
 
@@ -165,18 +165,18 @@ class PlayTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "started", "ended", "duration"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/plays?order=%s" % field)
+            request = self.client.get(f"/api/v1/plays?order={field}")
             self.assertEqual(request.data["results"][0]["id"], old_play.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/plays?order=-%s" % field)
+            request = self.client.get(f"/api/v1/plays?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], new_play.id)
 
     def test_update_wrong_play_status(self):
         play = factories.PlayFactory()
         self.assertNotEqual("wrong", play.status)
-        request = self.client.patch("/api/v1/plays/%s" % play.id, {"status": "wrong"})
+        request = self.client.patch(f"/api/v1/plays/{play.id}", {"status": "wrong"})
         self.assertEqual(400, request.status_code)
         play_updated = models.Play.objects.get(id=play.id)
         self.assertNotEqual("wrong", play_updated.status)
@@ -201,5 +201,5 @@ class PlayTestCase(APITestCase):
 
     def test_get_playbook_arguments(self):
         play = factories.PlayFactory()
-        request = self.client.get("/api/v1/plays/%s" % play.id)
+        request = self.client.get(f"/api/v1/plays/{play.id}")
         self.assertIn("inventory", request.data["playbook"]["arguments"])

@@ -93,9 +93,10 @@ class PlaybookList(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.label is not None:
             query["label"] = args.label
@@ -199,17 +200,18 @@ class PlaybookShow(ShowOne):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        playbook = client.get("/api/v1/playbooks/%s" % args.playbook_id)
+        playbook = client.get(f"/api/v1/playbooks/{args.playbook_id}")
         if "detail" in playbook and playbook["detail"] == "Not found.":
-            self.log.error("Playbook not found: %s" % args.playbook_id)
+            self.log.error(f"Playbook not found: {args.playbook_id}")
             sys.exit(1)
 
-        playbook["report"] = "%s/playbooks/%s.html" % (args.server, args.playbook_id)
+        playbook["report"] = f"{args.server}/playbooks/{args.playbook_id}.html"
         columns = (
             "id",
             "report",
@@ -251,12 +253,13 @@ class PlaybookDelete(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
 
+
         # TODO: Improve client to be better at handling exceptions
-        client.delete("/api/v1/playbooks/%s" % args.playbook_id)
+        client.delete(f"/api/v1/playbooks/{args.playbook_id}")
 
 
 class PlaybookPrune(Command):
@@ -340,9 +343,10 @@ class PlaybookPrune(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
 
         if not args.confirm:
             self.log.info("--confirm was not specified, no playbooks will be deleted")
@@ -381,7 +385,7 @@ class PlaybookPrune(Command):
             self.log.error("Client failed to retrieve results, see logs for ara.clients.offline or ara.clients.http.")
             sys.exit(1)
 
-        self.log.info("Found %s playbooks matching query" % playbooks["count"])
+        self.log.info(f'Found {playbooks["count"]} playbooks matching query')
         for playbook in playbooks["results"]:
             if not args.confirm:
                 msg = "Dry-run: playbook {id} ({path}) would have been deleted, start date: {started}"
@@ -389,10 +393,10 @@ class PlaybookPrune(Command):
             else:
                 msg = "Deleting playbook {id} ({path}), start date: {started}"
                 self.log.info(msg.format(id=playbook["id"], path=playbook["path"], started=playbook["started"]))
-                client.delete("/api/v1/playbooks/%s" % playbook["id"])
+                client.delete(f'/api/v1/playbooks/{playbook["id"]}')
                 self.deleted += 1
 
-        self.log.info("%s playbooks deleted" % self.deleted)
+        self.log.info(f"{self.deleted} playbooks deleted")
 
 
 class PlaybookMetrics(Lister):
@@ -479,9 +483,10 @@ class PlaybookMetrics(Lister):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
         query = {}
         if args.label is not None:
             query["label"] = args.label
@@ -531,12 +536,11 @@ class PlaybookMetrics(Lister):
                 "completed": 0,
                 "unknown": 0,
                 "duration_total": "00:00:00.000000",
+                "aggregate": cli_utils.truncatepath(item, 50)
+                if args.aggregate == "path" and not args.long
+                else item,
             }
 
-            if args.aggregate == "path" and not args.long:
-                data[item]["aggregate"] = cli_utils.truncatepath(item, 50)
-            else:
-                data[item]["aggregate"] = item
 
             for playbook in playbooks:
                 for status in ["completed", "expired", "failed", "running", "unknown"]:

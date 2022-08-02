@@ -144,16 +144,19 @@ class ActionModule(ActionBase):
 
     def create_or_update_key(self, playbook, key, value, type):
         changed = False
-        record = self.client.get("/api/v1/records?playbook=%s&key=%s" % (playbook, key))
+        record = self.client.get(f"/api/v1/records?playbook={playbook}&key={key}")
         if record["count"] == 0:
             # Create the record if it doesn't exist
             record = self.client.post("/api/v1/records", playbook=playbook, key=key, value=value, type=type)
             changed = True
         else:
             # Otherwise update it if the data is different (idempotency)
-            old = self.client.get("/api/v1/records/%s" % record["results"][0]["id"])
+            old = self.client.get(f'/api/v1/records/{record["results"][0]["id"]}')
             if old["value"] != value or old["type"] != type:
-                record = self.client.patch("/api/v1/records/%s" % old["id"], key=key, value=value, type=type)
+                record = self.client.patch(
+                    f'/api/v1/records/{old["id"]}', key=key, value=value, type=type
+                )
+
                 changed = True
             else:
                 record = old
@@ -161,7 +164,7 @@ class ActionModule(ActionBase):
 
     def run(self, tmp=None, task_vars=None):
         if task_vars is None:
-            task_vars = dict()
+            task_vars = {}
 
         for arg in self._task.args:
             if arg not in self.VALID_ARGS:
@@ -195,7 +198,7 @@ class ActionModule(ActionBase):
             while not isinstance(parent._parent._play, Play):
                 parent = parent._parent
 
-            play = self.client.get("/api/v1/plays?uuid=%s" % parent._parent._play._uuid)
+            play = self.client.get(f"/api/v1/plays?uuid={parent._parent._play._uuid}")
             playbook_id = play["results"][0]["playbook"]
 
         try:

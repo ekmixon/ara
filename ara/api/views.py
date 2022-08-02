@@ -38,8 +38,7 @@ class PlaybookViewSet(viewsets.ModelViewSet):
     filterset_class = filters.PlaybookFilter
 
     def get_queryset(self):
-        statuses = self.request.GET.getlist("status")
-        if statuses:
+        if statuses := self.request.GET.getlist("status"):
             return models.Playbook.objects.filter(status__in=statuses).order_by("-id")
         return models.Playbook.objects.all().order_by("-id")
 
@@ -57,8 +56,7 @@ class PlayViewSet(viewsets.ModelViewSet):
     filterset_class = filters.PlayFilter
 
     def get_queryset(self):
-        statuses = self.request.GET.getlist("status")
-        if statuses:
+        if statuses := self.request.GET.getlist("status"):
             return models.Play.objects.filter(status__in=statuses).order_by("-id")
         return models.Play.objects.all().order_by("-id")
 
@@ -76,8 +74,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     filterset_class = filters.TaskFilter
 
     def get_queryset(self):
-        statuses = self.request.GET.getlist("status")
-        if statuses:
+        if statuses := self.request.GET.getlist("status"):
             return models.Task.objects.filter(status__in=statuses).order_by("-id")
         return models.Task.objects.all().order_by("-id")
 
@@ -134,8 +131,7 @@ class ResultViewSet(viewsets.ModelViewSet):
     filterset_class = filters.ResultFilter
 
     def get_queryset(self):
-        statuses = self.request.GET.getlist("status")
-        if statuses:
+        if statuses := self.request.GET.getlist("status"):
             return models.Result.objects.filter(status__in=statuses).order_by("-id")
         return models.Result.objects.all().order_by("-id")
 

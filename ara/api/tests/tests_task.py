@@ -90,7 +90,7 @@ class TaskTestCase(APITestCase):
     def test_delete_task(self):
         task = factories.TaskFactory()
         self.assertEqual(1, models.Task.objects.all().count())
-        request = self.client.delete("/api/v1/tasks/%s" % task.id)
+        request = self.client.delete(f"/api/v1/tasks/{task.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Task.objects.all().count())
 
@@ -117,7 +117,7 @@ class TaskTestCase(APITestCase):
     def test_partial_update_task(self):
         task = factories.TaskFactory()
         self.assertNotEqual("update", task.name)
-        request = self.client.patch("/api/v1/tasks/%s" % task.id, {"name": "update"})
+        request = self.client.patch(f"/api/v1/tasks/{task.id}", {"name": "update"})
         self.assertEqual(200, request.status_code)
         task_updated = models.Task.objects.get(id=task.id)
         self.assertEqual("update", task_updated.name)
@@ -126,21 +126,21 @@ class TaskTestCase(APITestCase):
         task = factories.TaskFactory(status="running")
         self.assertEqual("running", task.status)
 
-        request = self.client.patch("/api/v1/tasks/%s" % task.id, {"status": "expired"})
+        request = self.client.patch(f"/api/v1/tasks/{task.id}", {"status": "expired"})
         self.assertEqual(200, request.status_code)
         task_updated = models.Task.objects.get(id=task.id)
         self.assertEqual("expired", task_updated.status)
 
     def test_get_task(self):
         task = factories.TaskFactory()
-        request = self.client.get("/api/v1/tasks/%s" % task.id)
+        request = self.client.get(f"/api/v1/tasks/{task.id}")
         self.assertEqual(task.name, request.data["name"])
 
     def test_get_tasks_by_playbook(self):
         playbook = factories.PlaybookFactory()
         task = factories.TaskFactory(name="task1", playbook=playbook)
         factories.TaskFactory(name="task2", playbook=playbook)
-        request = self.client.get("/api/v1/tasks?playbook=%s" % playbook.id)
+        request = self.client.get(f"/api/v1/tasks?playbook={playbook.id}")
         self.assertEqual(2, len(request.data["results"]))
         self.assertEqual(task.name, request.data["results"][1]["name"])
         self.assertEqual("task2", request.data["results"][0]["name"])
@@ -157,12 +157,12 @@ class TaskTestCase(APITestCase):
         task = factories.TaskFactory(name="inside_first", play=play)
         factories.TaskFactory(name="inside_second", play=play)
 
-        request = self.client.get("/api/v1/tasks?play=%s" % play.id)
+        request = self.client.get(f"/api/v1/tasks?play={play.id}")
         self.assertEqual(2, len(request.data["results"]))
         self.assertEqual(task.name, request.data["results"][1]["name"])
         self.assertEqual("inside_second", request.data["results"][0]["name"])
 
-        request = self.client.get("/api/v1/tasks?play=%s" % second_play.id)
+        request = self.client.get(f"/api/v1/tasks?play={second_play.id}")
         self.assertEqual(0, len(request.data["results"]))
 
     def test_get_tasks_by_name(self):
@@ -172,7 +172,7 @@ class TaskTestCase(APITestCase):
         factories.TaskFactory(name="task2", playbook=playbook)
 
         # Query for the first task name and expect one result
-        request = self.client.get("/api/v1/tasks?name=%s" % task.name)
+        request = self.client.get(f"/api/v1/tasks?name={task.name}")
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(task.name, request.data["results"][0]["name"])
 
@@ -180,7 +180,7 @@ class TaskTestCase(APITestCase):
         started = timezone.now()
         ended = started + datetime.timedelta(hours=1)
         task = factories.TaskFactory(started=started, ended=ended)
-        request = self.client.get("/api/v1/tasks/%s" % task.id)
+        request = self.client.get(f"/api/v1/tasks/{task.id}")
         self.assertEqual(parse_duration(request.data["duration"]), ended - started)
 
     def test_get_task_by_date(self):
@@ -192,12 +192,12 @@ class TaskTestCase(APITestCase):
 
         # Expect no task when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/tasks?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/tasks?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a task when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/tasks?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/tasks?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], task.id)
 
@@ -216,18 +216,18 @@ class TaskTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "started", "ended", "duration"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/tasks?order=%s" % field)
+            request = self.client.get(f"/api/v1/tasks?order={field}")
             self.assertEqual(request.data["results"][0]["id"], old_task.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/tasks?order=-%s" % field)
+            request = self.client.get(f"/api/v1/tasks?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], new_task.id)
 
     def test_update_wrong_task_status(self):
         task = factories.TaskFactory()
         self.assertNotEqual("wrong", task.status)
-        request = self.client.patch("/api/v1/tasks/%s" % task.id, {"status": "wrong"})
+        request = self.client.patch(f"/api/v1/tasks/{task.id}", {"status": "wrong"})
         self.assertEqual(400, request.status_code)
         task_updated = models.Task.objects.get(id=task.id)
         self.assertNotEqual("wrong", task_updated.status)
@@ -284,5 +284,5 @@ class TaskTestCase(APITestCase):
 
     def test_get_playbook_arguments(self):
         task = factories.TaskFactory()
-        request = self.client.get("/api/v1/tasks/%s" % task.id)
+        request = self.client.get(f"/api/v1/tasks/{task.id}")
         self.assertIn("inventory", request.data["playbook"]["arguments"])

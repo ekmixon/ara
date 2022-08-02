@@ -89,7 +89,7 @@ class ResultTestCase(APITestCase):
     def test_delete_result(self):
         result = factories.ResultFactory()
         self.assertEqual(1, models.Result.objects.all().count())
-        request = self.client.delete("/api/v1/results/%s" % result.id)
+        request = self.client.delete(f"/api/v1/results/{result.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Result.objects.all().count())
 
@@ -118,14 +118,17 @@ class ResultTestCase(APITestCase):
     def test_partial_update_result(self):
         result = factories.ResultFactory()
         self.assertNotEqual("unreachable", result.status)
-        request = self.client.patch("/api/v1/results/%s" % result.id, {"status": "unreachable"})
+        request = self.client.patch(
+            f"/api/v1/results/{result.id}", {"status": "unreachable"}
+        )
+
         self.assertEqual(200, request.status_code)
         result_updated = models.Result.objects.get(id=result.id)
         self.assertEqual("unreachable", result_updated.status)
 
     def test_get_result(self):
         result = factories.ResultFactory()
-        request = self.client.get("/api/v1/results/%s" % result.id)
+        request = self.client.get(f"/api/v1/results/{result.id}")
         self.assertEqual(result.status, request.data["status"])
 
     def test_get_result_by_association(self):
@@ -151,7 +154,7 @@ class ResultTestCase(APITestCase):
         # Searching for the first_result associations should only yield one result
         for association in associations:
             assoc_id = getattr(first_result, association).id
-            results = self.client.get("/api/v1/results?%s=%s" % (association, assoc_id))
+            results = self.client.get(f"/api/v1/results?{association}={assoc_id}")
             self.assertEqual(1, results.data["count"])
             self.assertEqual(1, len(results.data["results"]))
             self.assertEqual(assoc_id, results.data["results"][0][association])
@@ -178,27 +181,27 @@ class ResultTestCase(APITestCase):
 
     def test_result_status_serializer(self):
         ok = factories.ResultFactory(status="ok")
-        result = self.client.get("/api/v1/results/%s" % ok.id)
+        result = self.client.get(f"/api/v1/results/{ok.id}")
         self.assertEqual(result.data["status"], "ok")
 
         changed = factories.ResultFactory(status="ok", changed=True)
-        result = self.client.get("/api/v1/results/%s" % changed.id)
+        result = self.client.get(f"/api/v1/results/{changed.id}")
         self.assertEqual(result.data["status"], "changed")
 
         failed = factories.ResultFactory(status="failed")
-        result = self.client.get("/api/v1/results/%s" % failed.id)
+        result = self.client.get(f"/api/v1/results/{failed.id}")
         self.assertEqual(result.data["status"], "failed")
 
         ignored = factories.ResultFactory(status="failed", ignore_errors=True)
-        result = self.client.get("/api/v1/results/%s" % ignored.id)
+        result = self.client.get(f"/api/v1/results/{ignored.id}")
         self.assertEqual(result.data["status"], "ignored")
 
         skipped = factories.ResultFactory(status="skipped")
-        result = self.client.get("/api/v1/results/%s" % skipped.id)
+        result = self.client.get(f"/api/v1/results/{skipped.id}")
         self.assertEqual(result.data["status"], "skipped")
 
         unreachable = factories.ResultFactory(status="unreachable")
-        result = self.client.get("/api/v1/results/%s" % unreachable.id)
+        result = self.client.get(f"/api/v1/results/{unreachable.id}")
         self.assertEqual(result.data["status"], "unreachable")
 
     def test_get_result_with_ignore_errors(self):
@@ -223,7 +226,7 @@ class ResultTestCase(APITestCase):
         started = timezone.now()
         ended = started + datetime.timedelta(hours=1)
         result = factories.ResultFactory(started=started, ended=ended)
-        request = self.client.get("/api/v1/results/%s" % result.id)
+        request = self.client.get(f"/api/v1/results/{result.id}")
         self.assertEqual(parse_duration(request.data["duration"]), ended - started)
 
     def test_get_result_by_date(self):
@@ -235,12 +238,12 @@ class ResultTestCase(APITestCase):
 
         # Expect no result when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/results?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/results?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a result when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/results?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/results?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], result.id)
 
@@ -259,12 +262,12 @@ class ResultTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "started", "ended", "duration"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/results?order=%s" % field)
+            request = self.client.get(f"/api/v1/results?order={field}")
             self.assertEqual(request.data["results"][0]["id"], old_result.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/results?order=-%s" % field)
+            request = self.client.get(f"/api/v1/results?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], new_result.id)
 
     def test_get_changed_results(self):
@@ -287,5 +290,5 @@ class ResultTestCase(APITestCase):
 
     def test_get_playbook_arguments(self):
         result = factories.ResultFactory()
-        request = self.client.get("/api/v1/results/%s" % result.id)
+        request = self.client.get(f"/api/v1/results/{result.id}")
         self.assertIn("inventory", request.data["playbook"]["arguments"])

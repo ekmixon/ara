@@ -57,8 +57,11 @@ class ItemCountSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_items(obj):
         types = ["plays", "tasks", "results", "hosts", "files", "records"]
-        items = {item: getattr(obj, item).count() for item in types if hasattr(obj, item)}
-        return items
+        return {
+            item: getattr(obj, item).count()
+            for item in types
+            if hasattr(obj, item)
+        }
 
 
 class FileSha1Serializer(serializers.ModelSerializer):

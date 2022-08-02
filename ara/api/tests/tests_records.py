@@ -53,7 +53,7 @@ class RecordTestCase(APITestCase):
     def test_delete_record(self):
         record = factories.RecordFactory()
         self.assertEqual(1, models.Record.objects.all().count())
-        request = self.client.delete("/api/v1/records/%s" % record.id)
+        request = self.client.delete(f"/api/v1/records/{record.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Record.objects.all().count())
 
@@ -113,7 +113,7 @@ class RecordTestCase(APITestCase):
     def test_partial_update_record(self):
         record = factories.RecordFactory()
         self.assertNotEqual("update", record.key)
-        request = self.client.patch("/api/v1/records/%s" % record.id, {"key": "update"})
+        request = self.client.patch(f"/api/v1/records/{record.id}", {"key": "update"})
         self.assertEqual(200, request.status_code)
         record_updated = models.Record.objects.get(id=record.id)
         self.assertEqual("update", record_updated.key)
@@ -122,7 +122,7 @@ class RecordTestCase(APITestCase):
         playbook = factories.PlaybookFactory()
         record = factories.RecordFactory(playbook=playbook, key="by_playbook")
         factories.RecordFactory(key="another_record")
-        request = self.client.get("/api/v1/records?playbook=%s" % playbook.id)
+        request = self.client.get(f"/api/v1/records?playbook={playbook.id}")
         self.assertEqual(2, models.Record.objects.all().count())
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(record.key, request.data["results"][0]["key"])
@@ -132,7 +132,7 @@ class RecordTestCase(APITestCase):
         playbook = factories.PlaybookFactory()
         record = factories.RecordFactory(playbook=playbook, key="by_key")
         factories.RecordFactory(key="another_record")
-        request = self.client.get("/api/v1/records?key=%s" % record.key)
+        request = self.client.get(f"/api/v1/records?key={record.key}")
         self.assertEqual(2, models.Record.objects.all().count())
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(record.key, request.data["results"][0]["key"])
@@ -143,7 +143,10 @@ class RecordTestCase(APITestCase):
         record = factories.RecordFactory(playbook=playbook, key="by_playbook_and_key")
         factories.RecordFactory(playbook=playbook, key="another_record_in_playbook")
         factories.RecordFactory(key="another_record_in_another_playbook")
-        request = self.client.get("/api/v1/records?playbook=%s&key=%s" % (playbook.id, record.key))
+        request = self.client.get(
+            f"/api/v1/records?playbook={playbook.id}&key={record.key}"
+        )
+
         self.assertEqual(3, models.Record.objects.all().count())
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(record.key, request.data["results"][0]["key"])
@@ -158,12 +161,12 @@ class RecordTestCase(APITestCase):
 
         # Expect no record when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/records?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/records?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a record when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/records?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/records?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], record.id)
 
@@ -178,15 +181,15 @@ class RecordTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "key"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/records?order=%s" % field)
+            request = self.client.get(f"/api/v1/records?order={field}")
             self.assertEqual(request.data["results"][0]["id"], first_record.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/records?order=-%s" % field)
+            request = self.client.get(f"/api/v1/records?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], second_record.id)
 
     def test_get_playbook_arguments(self):
         record = factories.RecordFactory()
-        request = self.client.get("/api/v1/records/%s" % record.id)
+        request = self.client.get(f"/api/v1/records/{record.id}")
         self.assertIn("inventory", request.data["playbook"]["arguments"])

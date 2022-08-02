@@ -36,7 +36,7 @@ from ara.clients import utils as client_utils
 try:
     from ansible import context
 
-    cli_options = {key: value for key, value in context.CLIARGS.items()}
+    cli_options = dict(context.CLIARGS.items())
 except ImportError:
     # < 2.8 doesn't have ansible.context
     try:
@@ -227,21 +227,21 @@ class CallbackModule(CallbackBase):
             timeout=timeout,
             username=username,
             password=password,
-            verify=False if insecure else True,
+            verify=not insecure,
         )
+
 
         # TODO: Consider un-hardcoding this and plumbing pool_maxsize to requests.adapters.HTTPAdapter.
         #       In the meantime default to 4 so we don't go above requests.adapters.DEFAULT_POOLSIZE.
         #       Otherwise we can hit "urllib3.connectionpool: Connection pool is full"
         self.callback_threads = self.get_option("callback_threads")
-        if self.callback_threads > 4:
-            self.callback_threads = 4
+        self.callback_threads = min(self.callback_threads, 4)
 
     def _submit_thread(self, threadpool, func, *args, **kwargs):
         # Manages whether or not the function should be threaded to keep things DRY
         if self.callback_threads:
             # Pick from one of two thread pools (global or task)
-            threads = getattr(self, threadpool + "_threads")
+            threads = getattr(self, f"{threadpool}_threads")
             threads.submit(func, *args, **kwargs)
         else:
             func(*args, **kwargs)
@@ -251,7 +251,10 @@ class CallbackModule(CallbackBase):
 
         if self.callback_threads:
             self.global_threads = ThreadPoolExecutor(max_workers=self.callback_threads)
-            self.log.debug("Global thread pool initialized with %s thread(s)" % self.callback_threads)
+            self.log.debug(
+                f"Global thread pool initialized with {self.callback_threads} thread(s)"
+            )
+
 
         content = None
 
@@ -266,7 +269,7 @@ class CallbackModule(CallbackBase):
         # Potentially sanitize some user-specified keys
         for argument in self.ignored_arguments:
             if argument in cli_options:
-                self.log.debug("Ignoring argument: %s" % argument)
+                self.log.debug(f"Ignoring argument: {argument}")
                 cli_options[argument] = "Not saved by ARA as configured by 'ignored_arguments'"
 
         # Retrieve and format CLI options for argument labels
@@ -274,16 +277,14 @@ class CallbackModule(CallbackBase):
         for label in self.argument_labels:
             if label in cli_options:
                 # Some arguments are lists or tuples
-                if isinstance(cli_options[label], tuple) or isinstance(cli_options[label], list):
+                if isinstance(cli_options[label], (tuple, list)):
                     # Only label these if they're not empty
                     if cli_options[label]:
-                        argument_labels.append("%s:%s" % (label, ",".join(cli_options[label])))
-                # Some arguments are booleans
+                        argument_labels.append(f'{label}:{",".join(cli_options[label])}')
                 elif isinstance(cli_options[label], bool):
-                    argument_labels.append("%s:%s" % (label, cli_options[label]))
-                # The rest can be printed as-is if there is something set
+                    argument_labels.append(f"{label}:{cli_options[label]}")
                 elif cli_options[label]:
-                    argument_labels.append("%s:%s" % (label, cli_options[label]))
+                    argument_labels.append(f"{label}:{cli_options[label]}")
         self.argument_labels = argument_labels
 
         # Create the playbook
@@ -356,10 +357,12 @@ class CallbackModule(CallbackBase):
 
         if self.callback_threads:
             self.task_threads = ThreadPoolExecutor(max_workers=self.callback_threads)
-            self.log.debug("Task thread pool initialized with %s thread(s)" % self.callback_threads)
+            self.log.debug(
+                f"Task thread pool initialized with {self.callback_threads} thread(s)"
+            )
 
-        pathspec = task.get_path()
-        if pathspec:
+
+        if pathspec := task.get_path():
             path, lineno = pathspec.split(":", 1)
             lineno = int(lineno)
         else:
@@ -414,10 +417,11 @@ class CallbackModule(CallbackBase):
             self._submit_thread(
                 "task",
                 self.client.patch,
-                "/api/v1/tasks/%s" % self.task["id"],
+                f'/api/v1/tasks/{self.task["id"]}',
                 status="completed",
                 ended=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             )
+
             if self.callback_threads:
                 # Flush threads before moving on to next task to make sure all results are saved
                 self.log.debug("waiting for task threads...")
@@ -430,10 +434,11 @@ class CallbackModule(CallbackBase):
             self._submit_thread(
                 "global",
                 self.client.patch,
-                "/api/v1/plays/%s" % self.play["id"],
+                f'/api/v1/plays/{self.play["id"]}',
                 status="completed",
                 ended=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             )
+
             self.play = None
 
     def _end_playbook(self, stats):
@@ -446,10 +451,11 @@ class CallbackModule(CallbackBase):
         self._submit_thread(
             "global",
             self.client.patch,
-            "/api/v1/playbooks/%s" % self.playbook["id"],
+            f'/api/v1/playbooks/{self.playbook["id"]}',
             status=status,
             ended=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         )
+
 
         if self.callback_threads:
             self.log.debug("waiting for global threads...")
@@ -457,18 +463,22 @@ class CallbackModule(CallbackBase):
 
     def _set_playbook_name(self, name):
         if self.playbook["name"] != name:
-            self.playbook = self.client.patch("/api/v1/playbooks/%s" % self.playbook["id"], name=name)
+            self.playbook = self.client.patch(
+                f'/api/v1/playbooks/{self.playbook["id"]}', name=name
+            )
 
     def _set_playbook_labels(self, labels):
         # Only update labels if our cache doesn't match
         current_labels = [label["name"] for label in self.playbook["labels"]]
         if sorted(current_labels) != sorted(labels):
-            self.log.debug("Updating playbook labels to match: %s" % ",".join(labels))
-            self.playbook = self.client.patch("/api/v1/playbooks/%s" % self.playbook["id"], labels=labels)
+            self.log.debug(f'Updating playbook labels to match: {",".join(labels)}')
+            self.playbook = self.client.patch(
+                f'/api/v1/playbooks/{self.playbook["id"]}', labels=labels
+            )
 
     def _get_or_create_file(self, path, content=None):
         if path not in self.file_cache:
-            self.log.debug("File not in cache, getting or creating: %s" % path)
+            self.log.debug(f"File not in cache, getting or creating: {path}")
             for ignored_file_pattern in self.ignored_files:
                 if ignored_file_pattern in path:
                     self.log.debug("Ignoring file {1}, matched pattern: {0}".format(ignored_file_pattern, path))
@@ -491,7 +501,7 @@ class CallbackModule(CallbackBase):
     def _get_or_create_host(self, host):
         # Note: The get_or_create is handled through the serializer of the API server.
         if host not in self.host_cache:
-            self.log.debug("Host not in cache, getting or creating: %s" % host)
+            self.log.debug(f"Host not in cache, getting or creating: {host}")
             self.host_cache[host] = self.client.post("/api/v1/hosts", name=host, playbook=self.playbook["id"])
         return self.host_cache[host]
 
@@ -523,7 +533,7 @@ class CallbackModule(CallbackBase):
         if "ansible_facts" in results:
             for fact in self.ignored_facts:
                 if fact in results["ansible_facts"]:
-                    self.log.debug("Ignoring fact: %s" % fact)
+                    self.log.debug(f"Ignoring fact: {fact}")
                     results["ansible_facts"][fact] = "Not saved by ARA as configured by 'ignored_facts'"
 
         self.result = self.client.post(
@@ -542,7 +552,9 @@ class CallbackModule(CallbackBase):
         )
 
         if self.task["action"] in ["setup", "gather_facts"] and "ansible_facts" in results:
-            self.client.patch("/api/v1/hosts/%s" % host["id"], facts=results["ansible_facts"])
+            self.client.patch(
+                f'/api/v1/hosts/{host["id"]}', facts=results["ansible_facts"]
+            )
 
     def _load_stats(self, stats):
         hosts = sorted(stats.processed.keys())
@@ -553,7 +565,7 @@ class CallbackModule(CallbackBase):
             self._submit_thread(
                 "global",
                 self.client.patch,
-                "/api/v1/hosts/%s" % host["id"],
+                f'/api/v1/hosts/{host["id"]}',
                 changed=host_stats["changed"],
                 unreachable=host_stats["unreachable"],
                 failed=host_stats["failures"],

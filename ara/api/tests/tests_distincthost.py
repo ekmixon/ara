@@ -70,7 +70,7 @@ class DistinctHostTestCase(APITestCase):
         self.assertEqual(1, models.Host.objects.count())
         self.assertEqual(1, models.DistinctHost.objects.count())
 
-        delete = self.client.delete("/api/v1/hosts/%s" % request.data["id"])
+        delete = self.client.delete(f'/api/v1/hosts/{request.data["id"]}')
         self.assertEqual(204, delete.status_code)
         self.assertEqual(0, models.Host.objects.count())
         self.assertEqual(0, models.DistinctHost.objects.count())
@@ -90,7 +90,7 @@ class DistinctHostTestCase(APITestCase):
         self.assertEqual(second_host.data["id"], models.DistinctHost.objects.first().latest.id)
 
         # Deleting the second host should update the distincthost to point to the first host
-        delete = self.client.delete("/api/v1/hosts/%s" % second_host.data["id"])
+        delete = self.client.delete(f'/api/v1/hosts/{second_host.data["id"]}')
         self.assertEqual(204, delete.status_code)
         self.assertEqual(1, models.Host.objects.count())
         self.assertEqual(first_host.data["id"], models.DistinctHost.objects.first().latest.id)
@@ -110,7 +110,7 @@ class DistinctHostTestCase(APITestCase):
         self.assertEqual(second_host.data["id"], models.DistinctHost.objects.first().latest.id)
 
         # Deleting the first host shouldn't result in an update to the distincthost table
-        delete = self.client.delete("/api/v1/hosts/%s" % first_host.data["id"])
+        delete = self.client.delete(f'/api/v1/hosts/{first_host.data["id"]}')
         self.assertEqual(204, delete.status_code)
         self.assertEqual(1, models.Host.objects.count())
         self.assertEqual(second_host.data["id"], models.DistinctHost.objects.first().latest.id)

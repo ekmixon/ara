@@ -8,26 +8,22 @@ from datetime import datetime, timedelta
 
 @functools.lru_cache(maxsize=10)
 def get_playbook(client, playbook_id):
-    playbook = client.get("/api/v1/playbooks/%s" % playbook_id)
-    return playbook
+    return client.get(f"/api/v1/playbooks/{playbook_id}")
 
 
 @functools.lru_cache(maxsize=10)
 def get_play(client, play_id):
-    play = client.get("/api/v1/plays/%s" % play_id)
-    return play
+    return client.get(f"/api/v1/plays/{play_id}")
 
 
 @functools.lru_cache(maxsize=10)
 def get_task(client, task_id):
-    task = client.get("/api/v1/tasks/%s" % task_id)
-    return task
+    return client.get(f"/api/v1/tasks/{task_id}")
 
 
 @functools.lru_cache(maxsize=10)
 def get_host(client, host_id):
-    host = client.get("/api/v1/hosts/%s" % host_id)
-    return host
+    return client.get(f"/api/v1/hosts/{host_id}")
 
 
 def parse_timedelta(string, pattern="%H:%M:%S.%f"):
@@ -76,11 +72,9 @@ def truncatepath(path, count):
         return path
 
     dirname, basename = os.path.split(path)
-    while dirname:
-        if len(dirname) + len(basename) < length:
-            break
+    while dirname and len(dirname) + len(basename) >= length:
         dirlist = dirname.split("/")
         dirlist.pop(0)
         dirname = "/".join(dirlist)
 
-    return "..." + os.path.join(dirname, basename)
+    return f"...{os.path.join(dirname, basename)}"

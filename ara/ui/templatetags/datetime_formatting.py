@@ -25,9 +25,7 @@ register = template.Library()
 
 @register.filter(name="format_duration")
 def format_duration(duration):
-    if duration is not None:
-        return duration[:-4]
-    return duration
+    return duration[:-4] if duration is not None else duration
 
 
 @register.filter(name="format_date")
@@ -45,7 +43,7 @@ def past_timestamp(weeks=0, days=0, hours=0, minutes=0, seconds=0):
         datetime.timedelta(days=7)
     See: https://docs.python.org/3/library/datetime.html#datetime.timedelta
     """
-    delta = dict()
+    delta = {}
     if weeks:
         delta["weeks"] = weeks
     if days:

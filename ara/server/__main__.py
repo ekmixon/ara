@@ -39,21 +39,21 @@ def main():
 
     # Validate that the settings file exists and is readable before bootstrapping
     if not os.path.exists(settings.ARA_SETTINGS):
-        print("[ara] Unable to access or read settings file: %s" % settings.ARA_SETTINGS)
+        print(f"[ara] Unable to access or read settings file: {settings.ARA_SETTINGS}")
         raise MissingSettingsException
-    print("[ara] Using settings file: %s" % settings.ARA_SETTINGS)
-
-    if settings.DATABASE_ENGINE == "django.db.backends.postgresql":
-        try:
-            import psycopg2  # noqa
-        except ImportError as e:
-            raise MissingPsycopgException from e
+    print(f"[ara] Using settings file: {settings.ARA_SETTINGS}")
 
     if settings.DATABASE_ENGINE == "django.db.backends.mysql":
         try:
             import MySQLdb  # noqa
         except ImportError as e:
             raise MissingMysqlclientException from e
+
+    elif settings.DATABASE_ENGINE == "django.db.backends.postgresql":
+        try:
+            import psycopg2  # noqa
+        except ImportError as e:
+            raise MissingPsycopgException from e
 
     execute_from_command_line(sys.argv)
 

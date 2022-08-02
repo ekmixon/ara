@@ -60,9 +60,10 @@ class ExpireObjects(Command):
             timeout=args.timeout,
             username=args.username,
             password=args.password,
-            verify=False if args.insecure else True,
+            verify=not args.insecure,
             run_sql_migrations=False,
         )
+
 
         if not args.confirm:
             self.log.info("--confirm was not specified, no objects will be expired")
@@ -77,7 +78,7 @@ class ExpireObjects(Command):
         endpoints = ["/api/v1/playbooks", "/api/v1/plays", "/api/v1/tasks"]
         for endpoint in endpoints:
             objects = client.get(endpoint, **query)
-            self.log.info("Found %s objects matching query on %s" % (objects["count"], endpoint))
+            self.log.info(f'Found {objects["count"]} objects matching query on {endpoint}')
             # TODO: Improve client validation and exception handling
             if "count" not in objects:
                 # If we didn't get an answer we can parse, it's probably due to an error 500, 403, 401, etc.
@@ -88,14 +89,15 @@ class ExpireObjects(Command):
                 sys.exit(1)
 
             for obj in objects["results"]:
-                link = "%s/%s" % (endpoint, obj["id"])
+                link = f'{endpoint}/{obj["id"]}'
                 if not args.confirm:
                     self.log.info(
-                        "Dry-run: %s would have been expired, status is running since %s" % (link, obj["updated"])
+                        f'Dry-run: {link} would have been expired, status is running since {obj["updated"]}'
                     )
+
                 else:
-                    self.log.info("Expiring %s, status is running since %s" % (link, obj["updated"]))
+                    self.log.info(f'Expiring {link}, status is running since {obj["updated"]}')
                     client.patch(link, status="expired")
                     self.expired += 1
 
-        self.log.info("%s objects expired" % self.expired)
+        self.log.info(f"{self.expired} objects expired")

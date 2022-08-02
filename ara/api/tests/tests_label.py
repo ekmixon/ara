@@ -54,13 +54,13 @@ class LabelTestCase(APITestCase):
 
     def test_get_label(self):
         label = factories.LabelFactory()
-        request = self.client.get("/api/v1/labels/%s" % label.id)
+        request = self.client.get(f"/api/v1/labels/{label.id}")
         self.assertEqual(label.name, request.data["name"])
 
     def test_partial_update_label(self):
         label = factories.LabelFactory()
         self.assertNotEqual("updated", label.name)
-        request = self.client.patch("/api/v1/labels/%s" % label.id, {"name": "updated"})
+        request = self.client.patch(f"/api/v1/labels/{label.id}", {"name": "updated"})
         self.assertEqual(200, request.status_code)
         label_updated = models.Label.objects.get(id=label.id)
         self.assertEqual("updated", label_updated.name)
@@ -68,7 +68,7 @@ class LabelTestCase(APITestCase):
     def test_delete_label(self):
         label = factories.LabelFactory()
         self.assertEqual(1, models.Label.objects.all().count())
-        request = self.client.delete("/api/v1/labels/%s" % label.id)
+        request = self.client.delete(f"/api/v1/labels/{label.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Label.objects.all().count())
 
@@ -81,12 +81,12 @@ class LabelTestCase(APITestCase):
 
         # Expect no label when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/labels?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/labels?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a label when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/labels?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/labels?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], label.id)
 
@@ -101,12 +101,12 @@ class LabelTestCase(APITestCase):
         order_fields = ["id", "created", "updated"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/labels?order=%s" % field)
+            request = self.client.get(f"/api/v1/labels?order={field}")
             self.assertEqual(request.data["results"][0]["name"], first_label.name)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/labels?order=-%s" % field)
+            request = self.client.get(f"/api/v1/labels?order=-{field}")
             self.assertEqual(request.data["results"][0]["name"], second_label.name)
 
     def test_unique_label_names(self):

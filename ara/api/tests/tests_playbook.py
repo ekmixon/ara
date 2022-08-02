@@ -76,7 +76,7 @@ class PlaybookTestCase(APITestCase):
     def test_delete_playbook(self):
         playbook = factories.PlaybookFactory()
         self.assertEqual(1, models.Playbook.objects.all().count())
-        request = self.client.delete("/api/v1/playbooks/%s" % playbook.id)
+        request = self.client.delete(f"/api/v1/playbooks/{playbook.id}")
         self.assertEqual(204, request.status_code)
         self.assertEqual(0, models.Playbook.objects.all().count())
 
@@ -104,7 +104,10 @@ class PlaybookTestCase(APITestCase):
     def test_partial_update_playbook(self):
         playbook = factories.PlaybookFactory()
         self.assertNotEqual("completed", playbook.status)
-        request = self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"status": "completed"})
+        request = self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"status": "completed"}
+        )
+
         self.assertEqual(200, request.status_code)
         playbook_updated = models.Playbook.objects.get(id=playbook.id)
         self.assertEqual("completed", playbook_updated.status)
@@ -112,7 +115,10 @@ class PlaybookTestCase(APITestCase):
     def test_update_wrong_playbook_status(self):
         playbook = factories.PlaybookFactory()
         self.assertNotEqual("wrong", playbook.status)
-        request = self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"status": "wrong"})
+        request = self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"status": "wrong"}
+        )
+
         self.assertEqual(400, request.status_code)
         playbook_updated = models.Playbook.objects.get(id=playbook.id)
         self.assertNotEqual("wrong", playbook_updated.status)
@@ -121,14 +127,17 @@ class PlaybookTestCase(APITestCase):
         playbook = factories.PlaybookFactory(status="running")
         self.assertEqual("running", playbook.status)
 
-        request = self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"status": "expired"})
+        request = self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"status": "expired"}
+        )
+
         self.assertEqual(200, request.status_code)
         playbook_updated = models.Playbook.objects.get(id=playbook.id)
         self.assertEqual("expired", playbook_updated.status)
 
     def test_get_playbook(self):
         playbook = factories.PlaybookFactory()
-        request = self.client.get("/api/v1/playbooks/%s" % playbook.id)
+        request = self.client.get(f"/api/v1/playbooks/{playbook.id}")
         self.assertEqual(playbook.ansible_version, request.data["ansible_version"])
 
     def test_get_playbook_by_controller(self):
@@ -189,7 +198,10 @@ class PlaybookTestCase(APITestCase):
         playbook = factories.PlaybookFactory()
         new_name = "foo"
         self.assertNotEqual(playbook.name, new_name)
-        request = self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"name": new_name})
+        request = self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"name": new_name}
+        )
+
         self.assertEqual(200, request.status_code)
         playbook_updated = models.Playbook.objects.get(id=playbook.id)
         self.assertEqual(playbook_updated.name, new_name)
@@ -216,7 +228,7 @@ class PlaybookTestCase(APITestCase):
         started = timezone.now()
         ended = started + datetime.timedelta(hours=1)
         playbook = factories.PlaybookFactory(started=started, ended=ended)
-        request = self.client.get("/api/v1/playbooks/%s" % playbook.id)
+        request = self.client.get(f"/api/v1/playbooks/{playbook.id}")
         self.assertEqual(parse_duration(request.data["duration"]), ended - started)
 
     def test_get_playbook_by_date(self):
@@ -228,12 +240,12 @@ class PlaybookTestCase(APITestCase):
 
         # Expect no playbook when searching before it was created
         for field in negative_date_fields:
-            request = self.client.get("/api/v1/playbooks?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/playbooks?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 0)
 
         # Expect a playbook when searching after it was created
         for field in positive_date_fields:
-            request = self.client.get("/api/v1/playbooks?%s=%s" % (field, past.isoformat()))
+            request = self.client.get(f"/api/v1/playbooks?{field}={past.isoformat()}")
             self.assertEqual(request.data["count"], 1)
             self.assertEqual(request.data["results"][0]["id"], playbook.id)
 
@@ -252,19 +264,22 @@ class PlaybookTestCase(APITestCase):
         order_fields = ["id", "created", "updated", "started", "ended", "duration"]
         # Ascending order
         for field in order_fields:
-            request = self.client.get("/api/v1/playbooks?order=%s" % field)
+            request = self.client.get(f"/api/v1/playbooks?order={field}")
             self.assertEqual(request.data["results"][0]["id"], old_playbook.id)
 
         # Descending order
         for field in order_fields:
-            request = self.client.get("/api/v1/playbooks?order=-%s" % field)
+            request = self.client.get(f"/api/v1/playbooks?order=-{field}")
             self.assertEqual(request.data["results"][0]["id"], new_playbook.id)
 
     def test_patch_playbook_labels(self):
         playbook = factories.PlaybookFactory()
         labels = ["test-label", "another-test-label"]
         self.assertNotEqual(playbook.labels, labels)
-        request = self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"labels": labels})
+        request = self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"labels": labels}
+        )
+
         self.assertEqual(200, request.status_code)
         playbook_updated = models.Playbook.objects.get(id=playbook.id)
         self.assertEqual([label.name for label in playbook_updated.labels.all()], labels)
@@ -272,7 +287,10 @@ class PlaybookTestCase(APITestCase):
     def test_get_playbook_by_label(self):
         # Create two playbooks, one with labels and one without
         playbook = factories.PlaybookFactory()
-        self.client.patch("/api/v1/playbooks/%s" % playbook.id, {"labels": ["test-label"]})
+        self.client.patch(
+            f"/api/v1/playbooks/{playbook.id}", {"labels": ["test-label"]}
+        )
+
         factories.PlaybookFactory()
 
         # Ensure we have two objects when searching without labels
@@ -280,6 +298,6 @@ class PlaybookTestCase(APITestCase):
         self.assertEqual(2, len(request.data["results"]))
 
         # Search with label and ensure we have the right one
-        request = self.client.get("/api/v1/playbooks?label=%s" % "test-label")
+        request = self.client.get('/api/v1/playbooks?label=test-label')
         self.assertEqual(1, len(request.data["results"]))
         self.assertEqual(request.data["results"][0]["labels"][0]["name"], "test-label")

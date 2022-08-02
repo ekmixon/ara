@@ -69,7 +69,7 @@ class Label(Base):
     name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
-        return "<Label %s: %s>" % (self.id, self.name)
+        return f"<Label {self.id}: {self.name}>"
 
 
 class Playbook(Duration):
@@ -105,7 +105,7 @@ class Playbook(Duration):
     controller = models.CharField(max_length=255, default="localhost")
 
     def __str__(self):
-        return "<Playbook %s>" % self.id
+        return f"<Playbook {self.id}>"
 
 
 class FileContent(Base):
@@ -122,7 +122,7 @@ class FileContent(Base):
     contents = models.BinaryField(max_length=(2 ** 32) - 1)
 
     def __str__(self):
-        return "<FileContent %s:%s>" % (self.id, self.sha1)
+        return f"<FileContent {self.id}:{self.sha1}>"
 
 
 class File(Base):
@@ -140,7 +140,7 @@ class File(Base):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="files")
 
     def __str__(self):
-        return "<File %s:%s>" % (self.id, self.path)
+        return f"<File {self.id}:{self.path}>"
 
 
 class Record(Base):
@@ -159,7 +159,7 @@ class Record(Base):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="records")
 
     def __str__(self):
-        return "<Record %s:%s>" % (self.id, self.key)
+        return f"<Record {self.id}:{self.key}>"
 
 
 class Play(Duration):
@@ -184,7 +184,7 @@ class Play(Duration):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="plays")
 
     def __str__(self):
-        return "<Play %s:%s>" % (self.id, self.name)
+        return f"<Play {self.id}:{self.name}>"
 
 
 class Task(Duration):
@@ -213,7 +213,7 @@ class Task(Duration):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="tasks")
 
     def __str__(self):
-        return "<Task %s:%s>" % (self.name, self.id)
+        return f"<Task {self.name}:{self.id}>"
 
 
 class Host(Base):
@@ -237,7 +237,7 @@ class Host(Base):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="hosts")
 
     def __str__(self):
-        return "<Host %s:%s>" % (self.id, self.name)
+        return f"<Host {self.id}:{self.name}>"
 
 
 class DistinctHost(models.Model):
@@ -258,7 +258,7 @@ class DistinctHost(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "<DistinctHost %s>" % (self.name)
+        return f"<DistinctHost {self.name}>"
 
 
 class Result(Duration):
@@ -300,4 +300,4 @@ class Result(Duration):
     playbook = models.ForeignKey(Playbook, on_delete=models.CASCADE, related_name="results")
 
     def __str__(self):
-        return "<Result %s, %s>" % (self.id, self.status)
+        return f"<Result {self.id}, {self.status}>"

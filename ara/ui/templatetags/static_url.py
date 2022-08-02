@@ -21,6 +21,6 @@ def static_url(context, url):
         url = url[1:]
 
     if context["page"] != "index":
-        url = "../%s" % url
+        url = f"../{url}"
 
     return url

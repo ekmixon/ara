@@ -73,16 +73,19 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
+htmlhelp_basename = f'{project}doc'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index',
-     '%s.tex' % project,
-     u'%s Documentation' % project,
-     u'Red Hat', 'manual'),
+    (
+        'index',
+        f'{project}.tex',
+        f'{project} Documentation',
+        u'Red Hat',
+        'manual',
+    )
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.

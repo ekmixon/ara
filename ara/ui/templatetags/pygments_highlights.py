@@ -53,7 +53,7 @@ def format_data(data):
             lexer = JsonLexer()
         except (ValueError, TypeError):
             lexer = TextLexer()
-    elif isinstance(data, dict) or isinstance(data, list):
+    elif isinstance(data, (dict, list)):
         data = json.dumps(data, indent=4, sort_keys=True)
         lexer = JsonLexer()
     else:

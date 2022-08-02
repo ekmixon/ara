@@ -65,8 +65,7 @@ class AraCli(App):
         )
 
     def build_option_parser(self, description, version):
-        parser = super(AraCli, self).build_option_parser(description, version)
-        return parser
+        return super(AraCli, self).build_option_parser(description, version)
 
     def initialize_app(self, argv):
         log.debug("initialize_app")
