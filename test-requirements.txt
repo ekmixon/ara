@@ -6,3 +6,4 @@ black==19.3b0 # Exact version for prerelease
 isort
 
 # requirements for docs are in doc/requirements.txt
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
